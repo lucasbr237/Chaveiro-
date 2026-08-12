@@ -30,6 +30,34 @@ jobs:
       - name: Instalar dependências
         run: npm install
 
+      - name: Baixar fontes locais
+        continue-on-error: true
+        run: |
+          mkdir -p www/assets/fonts
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+          for W in 400 500 600 700; do
+            CSS=$(curl -s -A "$UA" "https://fonts.googleapis.com/css2?family=Inter:wght@$W&display=swap")
+            URL=$(echo "$CSS" | grep -oP "(?<=url\()[^)]+\.woff2(?=\))" | head -1)
+            if [ -n "$URL" ]; then
+              curl -sL "$URL" -o "www/assets/fonts/inter-$W.woff2"
+              echo "OK inter-$W.woff2"
+            else
+              echo "FALHOU inter-$W (usará fallback de sistema)"
+            fi
+          done
+
+          CSS=$(curl -s -A "$UA" "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap")
+          URL=$(echo "$CSS" | grep -oP "(?<=url\()[^)]+\.woff2(?=\))" | head -1)
+          if [ -n "$URL" ]; then
+            curl -sL "$URL" -o "www/assets/fonts/material-symbols-outlined.woff2"
+            echo "OK material-symbols-outlined.woff2"
+          else
+            echo "FALHOU material symbols (ícones ficarão como texto)"
+          fi
+
+          ls -la www/assets/fonts/
+
       - name: Build CSS (Tailwind)
         run: npm run build:css
 
