@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<meta name="color-scheme" content="light"/>
+<title>Chaveiro Rápido</title>
+
+<!-- 100% local: sem CDN do Tailwind, sem Google Fonts remoto -->
+<link href="./css/fonts.css" rel="stylesheet"/>
+<link href="./css/styles.css" rel="stylesheet"/>
+
+<style>
+  body { -webkit-tap-highlight-color: transparent; }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
+  .elevation-1 { background-color: theme('colors.surface-container-low'); }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .fingerprint-ripple {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: theme('colors.primary-container');
+    opacity: 0;
+    transform: scale(0.8);
+    pointer-events: none;
+  }
+  .biometric-btn:active .fingerprint-ripple { animation: ripple 0.6s ease-out; }
+  @keyframes ripple {
+    0% { opacity: 0.5; transform: scale(0.8); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+
+  .filled-input-container {
+    position: relative;
+    background-color: theme('colors.surface-variant');
+    border-radius: theme('borderRadius.DEFAULT') theme('borderRadius.DEFAULT') 0 0;
+    border-bottom: 1px solid theme('colors.on-surface-variant');
+  }
+  .filled-input-container:focus-within {
+    background-color: theme('colors.surface-container-high');
+    border-bottom: 2px solid theme('colors.primary');
+  }
+  .filled-input {
+    width: 100%;
+    padding: 24px 16px 8px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: theme('colors.on-surface');
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .filled-label {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    color: theme('colors.on-surface-variant');
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    transition: all 0.2s ease-out;
+    pointer-events: none;
+  }
+  .filled-input:focus ~ .filled-label,
+  .filled-input:not(:placeholder-shown) ~ .filled-label {
+    top: 8px;
+    font-size: 12px;
+    color: theme('colors.primary');
+  }
+  .filled-input:not(:focus):not(:placeholder-shown) ~ .filled-label {
+    color: theme('colors.on-surface-variant');
+  }
+  select.filled-input { appearance: none; padding-right: 48px; }
+  .select-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: theme('colors.on-surface-variant');
+  }
+
+  body { min-height: max(884px, 100dvh); }
+
+  .screen { display: none; }
+  .screen.active { display: flex; }
+
+  .tab-btn {
+    flex: 1;
+    color: theme('colors.on-surface-variant');
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tab-btn.active {
+    background-color: theme('colors.primary');
+    color: theme('colors.on-primary');
+    font-weight: 700;
+  }
+</style>
+</head>
+
+<body class="bg-background text-on-background font-body-md antialiased">
+
+<!-- ===================== TELA 1: LOGIN / ACESSO SEGURO ===================== -->
+<section id="screen-login" class="screen active h-screen w-full flex-col items-center justify-between overflow-hidden">
+  <div class="flex-1 flex flex-col items-center justify-center w-full px-margin-mobile pt-12 pb-8">
+    <div class="w-24 h-24 rounded-[32px] bg-primary-container text-on-primary-container flex items-center justify-center mb-stack-lg shadow-sm transition-transform duration-300 hover:scale-105">
+      <span class="material-symbols-outlined text-5xl" style="font-variation-settings: 'FILL' 1;">lock</span>
+    </div>
+    <div class="text-center flex flex-col gap-stack-sm">
+      <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Chaveiro Rápido</h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">Acesso Seguro</p>
+    </div>
+  </div>
+
+  <div class="flex-1 flex flex-col items-center justify-center w-full gap-stack-lg px-margin-mobile">
+    <button id="btn-biometric" aria-label="Autenticar com Biometria" class="biometric-btn relative w-20 h-20 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-surface-variant transition-colors duration-200 group focus:outline-none focus:ring-4 focus:ring-primary-container">
+      <div class="fingerprint-ripple"></div>
+      <span class="material-symbols-outlined text-4xl group-active:scale-90 transition-transform duration-150" style="font-variation-settings: 'FILL' 0;">fingerprint</span>
+    </button>
+    <p class="font-body-md text-body-md text-on-surface-variant">Toque no sensor para entrar</p>
+    <button id="btn-pin" class="mt-stack-md font-label-lg text-label-lg text-primary px-6 py-3 rounded-full hover:bg-surface-variant/50 active:bg-surface-variant transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary">
+      USAR PIN
+    </button>
+  </div>
+
+  <div class="w-full px-margin-mobile pb-10">
+    <div class="bg-surface-container-low rounded-xl p-4 flex items-start gap-stack-md border border-surface-container-highest/50">
+      <span class="material-symbols-outlined text-on-surface-variant shrink-0" style="font-variation-settings: 'FILL' 0;">shield_lock</span>
+      <div class="flex flex-col">
+        <span class="font-label-md text-label-md text-on-surface">Armazenamento Local</span>
+        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">
+          Seus dados de acesso e histórico são armazenados apenas no seu dispositivo. Não realizamos backup na nuvem por segurança.
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TELA 2: HOME (ABAS MINHAS / CONTATOS) ===================== -->
+<section id="screen-home" class="screen h-screen w-full flex-col relative pb-32 overflow-y-auto">
+  <header class="w-full top-0 bg-surface text-primary font-title-lg flex items-center justify-between px-margin-mobile h-16 w-full pt-safe sticky z-40 bg-surface-container">
+    <button aria-label="Menu" class="text-on-surface-variant hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 p-2 rounded-full flex items-center justify-center">
+      <span class="material-symbols-outlined" data-icon="lock">lock</span>
+    </button>
+    <h1 class="font-title-lg text-title-lg font-bold text-primary">Chaveiro Rápido</h1>
+    <button id="btn-settings" aria-label="Settings" class="text-on-surface-variant hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 p-2 rounded-full flex items-center justify-center">
+      <span class="material-symbols-outlined" data-icon="settings">settings</span>
+    </button>
+  </header>
+
+  <main class="flex-1 w-full max-w-2xl mx-auto flex flex-col gap-stack-lg p-margin-mobile">
+    <div id="backup-alert" class="bg-error-container text-on-error-container rounded-xl p-4 flex items-start gap-3 shadow-sm" role="alert">
+      <span class="material-symbols-outlined mt-0.5 text-error">warning</span>
+      <div class="flex-1">
+        <p class="font-label-lg text-on-error-container font-semibold mb-1">Atenção Crítica: Sem Backup</p>
+        <p class="font-body-md text-on-error-container/90">Suas chaves não estão salvas na nuvem. Backup na nuvem: em breve.</p>
+      </div>
+      <button id="btn-close-alert" class="text-on-error-container p-1 rounded-full hover:bg-error/10 transition-colors self-center">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Abas Minhas / Contatos -->
+    <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1">
+      <button id="tab-propria" class="tab-btn active font-label-lg text-label-lg py-2.5 rounded-full">Minhas</button>
+      <button id="tab-contato" class="tab-btn font-label-lg text-label-lg py-2.5 rounded-full">Contatos</button>
+    </div>
+
+    <div class="relative w-full">
+      <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <span class="material-symbols-outlined text-on-surface-variant">search</span>
+      </div>
+      <input id="search-input" class="w-full bg-surface-container-high border-none rounded-full h-14 pl-12 pr-4 text-on-surface font-body-lg placeholder:text-on-surface-variant/70 focus:ring-2 focus:ring-primary focus:bg-surface transition-all" placeholder="Buscar chaves PIX..." type="text"/>
+    </div>
+
+    <div id="key-list" class="flex flex-col gap-stack-md"></div>
+
+    <p id="empty-state" class="hidden text-center font-body-md text-on-surface-variant py-8">Nenhuma chave por aqui ainda.</p>
+  </main>
+
+  <!-- FAB removido: adicionar chave agora só pelo botão central da nav bar -->
+
+  <!-- Rodapé: Liberar Agenda (só aparece na aba Contatos, some no Premium) -->
+  <div id="footer-liberar-agenda" class="hidden fixed bottom-[104px] left-0 w-full flex justify-center px-margin-mobile z-30 pointer-events-none">
+    <a id="link-liberar-agenda" href="#" class="pointer-events-auto font-label-lg text-label-lg text-primary bg-surface-container-lowest border border-outline-variant rounded-full px-5 py-2 shadow-sm">Liberar agenda →</a>
+  </div>
+
+  <nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 pb-safe bg-surface-container z-50 rounded-t-none md:hidden">
+    <a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant py-1 px-3 rounded-xl active:scale-90 transition-transform" href="#">
+      <span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+      <span class="font-label-md mt-1">Início</span>
+    </a>
+    <a id="nav-add" class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant py-1 px-3 rounded-xl active:scale-90 transition-transform" href="#">
+      <span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+      <span class="font-label-md mt-1">Adicionar</span>
+    </a>
+    <a id="nav-security" class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant py-1 px-3 rounded-xl active:scale-90 transition-transform" href="#">
+      <span class="material-symbols-outlined" data-icon="security">security</span>
+      <span class="font-label-md mt-1">Segurança</span>
+    </a>
+  </nav>
+</section>
+
+<!-- ===================== TELA 3: NOVA CHAVE ===================== -->
+<section id="screen-new" class="screen h-screen w-full flex-col font-body-lg overflow-y-auto">
+  <header class="bg-surface w-full top-0 sticky z-10">
+    <div class="flex items-center justify-between px-margin-mobile h-16 w-full">
+      <button id="btn-back" aria-label="Voltar" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 text-on-surface">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 id="new-key-title" class="font-title-lg text-title-lg font-bold text-primary">Nova Chave</h1>
+      <div class="w-12 h-12"></div>
+    </div>
+    <div class="h-[1px] w-full bg-surface-container"></div>
+  </header>
+
+  <main class="flex-1 flex flex-col px-margin-mobile py-stack-lg gap-stack-lg pb-32 max-w-2xl mx-auto w-full">
+    <div class="flex flex-col gap-stack-md">
+      <div class="filled-input-container">
+        <input class="filled-input" id="apelido" placeholder=" " type="text"/>
+        <label class="filled-label font-body-lg" for="apelido">Apelido (ex: Fornecedor Cimento)</label>
+      </div>
+
+      <!-- 1. Tipo de Chave (CPF como padrão) -->
+      <div class="filled-input-container">
+        <select class="filled-input" id="tipo_chave">
+          <option value="cpf">CPF</option>
+          <option value="cnpj">CNPJ</option>
+          <option value="email">E-mail</option>
+          <option value="telefone">Telefone</option>
+          <option value="aleatoria">Aleatória</option>
+        </select>
+        <label class="filled-label font-body-lg" for="tipo_chave">Tipo de Chave</label>
+        <span class="material-symbols-outlined select-icon">arrow_drop_down</span>
+      </div>
+
+      <!-- 2. Valor -->
+      <div class="filled-input-container">
+        <input class="filled-input" id="valor_chave" placeholder=" " type="text"/>
+        <label class="filled-label font-body-lg" for="valor_chave">Código ou Valor da Chave</label>
+      </div>
+
+      <!-- 3. Banco (por último, opcional) -->
+      <button id="btn-pick-bank" type="button" class="w-full flex items-center justify-between bg-primary-container/15 border-2 border-primary-container hover:bg-primary-container/25 rounded-xl p-4 transition-colors text-left">
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="bank-picked-icon" class="w-11 h-11 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center shrink-0 text-sm font-bold">
+            <span class="material-symbols-outlined text-[22px]">account_balance</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Banco (opcional)</span>
+            <span id="bank-picked-label" class="font-body-lg text-on-surface-variant truncate">Toque para selecionar</span>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-primary shrink-0">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- Toggle "É minha?" -- só aparece no Premium, travado conforme a aba de origem -->
+    <div id="toggle-propria-wrap" class="hidden bg-surface-container-low rounded-2xl p-stack-md flex items-center justify-between">
+      <div class="flex flex-col">
+        <span class="font-label-lg text-on-surface">É minha?</span>
+        <span class="font-body-md text-on-surface-variant text-sm">Definido automaticamente pela aba de origem</span>
+      </div>
+      <div id="toggle-propria" class="w-12 h-7 rounded-full bg-outline-variant flex items-center px-1 opacity-60 cursor-not-allowed transition-colors">
+        <div id="toggle-propria-knob" class="w-5 h-5 rounded-full bg-white shadow transition-transform"></div>
+      </div>
+    </div>
+
+    <div class="bg-secondary-container rounded-2xl p-stack-md flex gap-stack-md items-start mt-stack-md">
+      <span class="material-symbols-outlined text-on-secondary-container flex-shrink-0" style="font-variation-settings: 'FILL' 1;">security</span>
+      <div class="flex flex-col gap-stack-sm">
+        <h3 class="font-label-lg text-label-lg text-on-secondary-container">Privacidade Garantida</h3>
+        <p class="font-body-md text-body-md text-on-secondary-container opacity-90">
+          Os dados da sua chave são criptografados de ponta a ponta. Apenas você e o chaveiro autorizado durante um serviço terão acesso a essas informações.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest p-margin-mobile pb-safe shadow-[0_-4px_16px_rgba(0,106,97,0.05)] border-t border-surface-container z-20">
+    <div class="max-w-2xl mx-auto w-full">
+      <button id="btn-save" class="w-full bg-primary hover:bg-primary-container hover:text-on-primary-container text-on-primary font-label-lg text-label-lg h-14 rounded-full flex items-center justify-center gap-base transition-colors active:scale-95 duration-100">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">save</span>
+        Salvar Chave
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TELA 3B: SELECIONAR BANCO ===================== -->
+<section id="screen-bank" class="screen h-screen w-full flex-col overflow-hidden">
+  <header class="bg-surface w-full top-0 sticky z-10">
+    <div class="flex items-center justify-between px-margin-mobile h-16 w-full">
+      <button id="btn-bank-back" aria-label="Voltar" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 text-on-surface">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 class="font-title-lg text-title-lg font-bold text-primary">Selecionar Banco</h1>
+      <div class="w-12 h-12"></div>
+    </div>
+    <div class="h-[1px] w-full bg-surface-container"></div>
+  </header>
+
+  <div class="px-margin-mobile pt-stack-md">
+    <div class="relative w-full">
+      <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <span class="material-symbols-outlined text-on-surface-variant">search</span>
+      </div>
+      <input id="bank-search-input" class="w-full bg-surface-container-high border-none rounded-full h-14 pl-12 pr-4 text-on-surface font-body-lg placeholder:text-on-surface-variant/70 focus:ring-2 focus:ring-primary focus:bg-surface transition-all" placeholder="Buscar banco..." type="text"/>
+    </div>
+  </div>
+
+  <main class="flex-1 overflow-y-auto px-margin-mobile py-stack-md max-w-2xl mx-auto w-full">
+    <button id="bank-none-option" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-left mb-stack-sm">
+      <div class="w-9 h-9 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-[20px]">block</span>
+      </div>
+      <span class="font-body-lg text-on-surface">Nenhum / não informar</span>
+    </button>
+    <div id="bank-loading" class="text-center py-8 font-body-md text-on-surface-variant">Carregando lista de bancos...</div>
+    <div id="bank-error" class="hidden text-center py-8 font-body-md text-on-surface-variant">Não foi possível carregar a lista agora. Tente novamente.</div>
+    <div id="bank-list" class="flex flex-col gap-1"></div>
+  </main>
+</section>
+
+<!-- ===================== TELA 4: PAYWALL (10ª CHAVE / LIBERAR AGENDA) ===================== -->
+<section id="screen-paywall" class="screen h-screen w-full flex-col items-center justify-between overflow-hidden">
+  <header class="bg-surface w-full top-0 sticky z-10 flex items-center px-margin-mobile h-16">
+    <button id="btn-paywall-back" aria-label="Voltar" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 text-on-surface">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+  </header>
+
+  <div class="flex-1 flex flex-col items-center justify-center w-full px-margin-mobile gap-stack-lg text-center">
+    <div class="w-20 h-20 rounded-[28px] bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm">
+      <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+    </div>
+    <div class="flex flex-col gap-stack-sm">
+      <h1 id="paywall-title" class="font-title-lg text-title-lg font-bold text-on-surface">Organize sua agenda</h1>
+      <p id="paywall-subtitle" class="font-body-lg text-body-lg text-on-surface-variant max-w-xs mx-auto">
+        Separe automaticamente suas chaves das chaves de contatos e cadastre sem limites.
+      </p>
+    </div>
+
+    <div class="w-full max-w-xs flex flex-col gap-stack-sm text-left bg-surface-container-low rounded-2xl p-stack-md">
+      <div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">check_circle</span><span class="font-body-md">Chaves ilimitadas</span></div>
+      <div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">check_circle</span><span class="font-body-md">Separação automática Minhas / Contatos</span></div>
+      <div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">check_circle</span><span class="font-body-md">Backup na nuvem (em breve)</span></div>
+    </div>
+  </div>
+
+  <div class="w-full px-margin-mobile pb-10 flex flex-col gap-stack-md items-center">
+    <button id="btn-subscribe" class="w-full max-w-xs bg-primary text-on-primary font-label-lg text-label-lg h-14 rounded-full flex flex-col items-center justify-center transition-colors active:scale-95 duration-100">
+      <span>Assinar por R$ 7,90/mês</span>
+      <span class="text-xs font-normal opacity-80">ou R$ 69,90/ano</span>
+    </button>
+    <button id="btn-paywall-dismiss" class="font-label-lg text-label-lg text-on-surface-variant px-6 py-2">Agora não</button>
+  </div>
+</section>
+
+<!-- ===================== TELA 5: ORGANIZAÇÃO MÁGICA (PÓS-PAGAMENTO) ===================== -->
+<section id="screen-organize" class="screen h-screen w-full flex-col overflow-y-auto">
+  <header class="bg-surface w-full top-0 sticky z-10">
+    <div class="flex items-center justify-center px-margin-mobile h-16 w-full">
+      <h1 class="font-title-lg text-title-lg font-bold text-primary">Organização Mágica</h1>
+    </div>
+    <div class="h-[1px] w-full bg-surface-container"></div>
+  </header>
+
+  <main class="flex-1 flex flex-col px-margin-mobile py-stack-lg gap-stack-md max-w-2xl mx-auto w-full pb-32">
+    <p class="font-body-md text-on-surface-variant">Marque as chaves que são <strong>suas</strong>. As demais ficam na aba Contatos.</p>
+    <div id="organize-list" class="flex flex-col gap-stack-sm"></div>
+  </main>
+
+  <div class="fixed bottom-0 left-0 w-full bg-surface-container-lowest p-margin-mobile pb-safe shadow-[0_-4px_16px_rgba(0,106,97,0.05)] border-t border-surface-container z-20">
+    <div class="max-w-2xl mx-auto w-full">
+      <button id="btn-confirm-organize" class="w-full bg-primary text-on-primary font-label-lg text-label-lg h-14 rounded-full flex items-center justify-center gap-base transition-colors active:scale-95 duration-100">
+        <span class="material-symbols-outlined">auto_awesome</span>
+        Confirmar organização
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TELA 6: CONFIGURAÇÕES ===================== -->
+<section id="screen-settings" class="screen h-screen w-full flex-col overflow-y-auto">
+  <header class="bg-surface w-full top-0 sticky z-10">
+    <div class="flex items-center justify-between px-margin-mobile h-16 w-full">
+      <button id="btn-settings-back" aria-label="Voltar" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 text-on-surface">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 class="font-title-lg text-title-lg font-bold text-primary">Chaveiro Rápido</h1>
+      <div class="w-12 h-12"></div>
+    </div>
+    <div class="h-[1px] w-full bg-surface-container"></div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto w-full max-w-2xl mx-auto px-margin-mobile pt-stack-lg pb-[100px]">
+    <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-background mb-stack-lg">Configurações</h1>
+
+    <div class="bg-secondary-container rounded-xl p-4 mb-stack-lg flex gap-4 shadow-sm shadow-primary/5 relative overflow-hidden group">
+      <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
+      <div class="shrink-0 mt-1">
+        <span class="material-symbols-outlined text-on-secondary-container text-[28px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+      </div>
+      <div class="flex-1 relative z-10">
+        <h2 class="font-label-lg text-label-lg text-on-secondary-container mb-1 font-bold">AVISO IMPORTANTE</h2>
+        <p class="font-body-md text-body-md text-on-secondary-container/90">
+          Recomendamos revisar suas informações de recuperação de conta. Uma conta segura garante agilidade nos seus chamados de emergência.
+        </p>
+        <button class="mt-3 font-label-md text-label-md text-primary bg-surface/50 hover:bg-surface px-4 py-2 rounded-full transition-colors active:scale-95">
+          Revisar agora
+        </button>
+      </div>
+    </div>
+
+    <section class="mb-stack-lg">
+      <h3 class="font-label-lg text-label-lg text-primary mb-3 px-1 uppercase tracking-wider">Segurança</h3>
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm shadow-primary/5 overflow-hidden border border-surface-variant/20 divide-y divide-surface-variant/20">
+        <button class="w-full flex items-center p-4 text-left hover:bg-surface-container-low transition-colors active:bg-surface-container">
+          <span class="material-symbols-outlined text-on-surface-variant mr-4">password</span>
+          <div class="flex-1">
+            <div class="font-body-lg text-body-lg text-on-surface">Alterar Senha</div>
+            <div class="font-body-md text-body-md text-on-surface-variant mt-0.5">Atualize sua credencial de acesso principal</div>
+          </div>
+          <span class="material-symbols-outlined text-on-surface-variant/50">chevron_right</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="mb-stack-lg">
+      <h3 class="font-label-lg text-label-lg text-primary mb-3 px-1 uppercase tracking-wider">Geral</h3>
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm shadow-primary/5 overflow-hidden border border-surface-variant/20 divide-y divide-surface-variant/20">
+        <button class="w-full flex items-center p-4 text-left hover:bg-surface-container-low transition-colors active:bg-surface-container">
+          <span class="material-symbols-outlined text-on-surface-variant mr-4">policy</span>
+          <div class="flex-1">
+            <div class="font-body-lg text-body-lg text-on-surface">Privacidade e Termos</div>
+            <div class="font-body-md text-body-md text-on-surface-variant mt-0.5">Leia nossos termos de uso e políticas</div>
+          </div>
+          <span class="material-symbols-outlined text-on-surface-variant/50">chevron_right</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="mb-stack-lg mt-8">
+      <button class="w-full flex items-center justify-center p-4 rounded-xl text-error hover:bg-error-container/50 transition-colors active:scale-[0.98] duration-200">
+        <span class="material-symbols-outlined mr-2">logout</span>
+        <span class="font-label-lg text-label-lg">Sair da Conta</span>
+      </button>
+    </section>
+
+    <div class="mt-12 flex flex-col items-center justify-center text-center opacity-70">
+      <p class="font-label-md text-label-md text-on-surface-variant">Versão 3.1.0 (Build 4920)</p>
+    </div>
+  </main>
+</section>
+
+<!-- ===================== TELA 7: SEGURANÇA (DICAS PIX) ===================== -->
+<section id="screen-security" class="screen h-screen w-full flex-col overflow-y-auto">
+  <header class="bg-surface w-full top-0 sticky z-10">
+    <div class="flex items-center justify-between px-margin-mobile h-16 w-full">
+      <button id="btn-security-back" aria-label="Voltar" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors active:scale-95 duration-100 text-on-surface">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h1 class="font-title-lg text-title-lg font-bold text-primary">Segurança</h1>
+      <div class="w-12 h-12"></div>
+    </div>
+    <div class="h-[1px] w-full bg-surface-container"></div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto w-full max-w-2xl mx-auto px-margin-mobile pt-stack-lg pb-[100px] flex flex-col gap-stack-lg">
+
+    <!-- Intro tranquilizadora: desfaz a confusão "dica = app perigoso" -->
+    <div class="bg-secondary-container rounded-xl p-4 flex gap-3 items-start">
+      <span class="material-symbols-outlined text-on-secondary-container shrink-0" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+      <p class="font-body-md text-body-md text-on-secondary-container">
+        Suas chaves aqui estão protegidas. As dicas abaixo são sobre golpes que acontecem <strong>fora do app</strong> — no WhatsApp, telefone ou em anúncios — pra você reconhecer e evitar.
+      </p>
+    </div>
+
+    <!-- Fique atento -->
+    <section class="flex flex-col gap-stack-md">
+      <h3 class="font-label-lg text-label-lg text-primary px-1 uppercase tracking-wider">Fique atento a golpes</h3>
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm shadow-primary/5 border border-surface-variant/20 divide-y divide-surface-variant/20 overflow-hidden">
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-tertiary shrink-0 mt-0.5">phone_disabled</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Nunca compartilhe chave, senha ou código por chamada de quem você não conhece</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Mesmo que a pessoa diga ser do banco. Bancos não pedem isso.</div>
+          </div>
+        </div>
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-tertiary shrink-0 mt-0.5">bolt</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Desconfie de pedidos "urgentes" de pagamento</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Pressa é a arma mais comum do golpista. Pare e confira antes.</div>
+          </div>
+        </div>
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-tertiary shrink-0 mt-0.5">record_voice_over</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Áudio ou vídeo de "familiar" pedindo dinheiro? Desconfie</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Golpistas usam IA pra clonar voz. Ligue de volta pro número que você já conhece antes de transferir.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Boas práticas -->
+    <section class="flex flex-col gap-stack-md">
+      <h3 class="font-label-lg text-label-lg text-primary px-1 uppercase tracking-wider">Boas práticas</h3>
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm shadow-primary/5 border border-surface-variant/20 divide-y divide-surface-variant/20 overflow-hidden">
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">check_circle</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Confira o nome exibido na transferência</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Se não bater com quem você espera, cancele e verifique.</div>
+          </div>
+        </div>
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">check_circle</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Sempre verifique o valor antes de enviar</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Confira o valor certinho na tela de confirmação antes de aprovar a transferência.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dentro do app -->
+    <section class="flex flex-col gap-stack-md">
+      <h3 class="font-label-lg text-label-lg text-primary px-1 uppercase tracking-wider">Usando o Chaveiro Rápido</h3>
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm shadow-primary/5 border border-surface-variant/20 divide-y divide-surface-variant/20 overflow-hidden">
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">visibility_off</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Evite deixar chaves reveladas com a tela aberta</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Toque no olho pra esconder de novo quando outra pessoa estiver por perto.</div>
+          </div>
+        </div>
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">cleaning_services</span>
+          <div>
+            <div class="font-body-lg text-on-surface">Revise seus contatos de vez em quando</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">Chave de fornecedor antigo ou cliente inativo? Vale limpar.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ferramenta oficial do Banco Central -->
+    <section class="flex flex-col gap-stack-md">
+      <h3 class="font-label-lg text-label-lg text-primary px-1 uppercase tracking-wider">Ferramenta oficial</h3>
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm shadow-primary/5 border border-surface-variant/20 overflow-hidden">
+        <div class="p-4 flex gap-3 items-start">
+          <span class="material-symbols-outlined text-primary shrink-0 mt-0.5">account_balance</span>
+          <div>
+            <div class="font-body-lg text-on-surface">BC Protege+</div>
+            <div class="font-body-md text-on-surface-variant text-sm mt-0.5">App gratuito do Banco Central pra você acompanhar e bloquear chaves Pix vinculadas ao seu CPF, caso alguma tenha sido cadastrada sem sua autorização.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</section>
+
+<script src="./js/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Build CSS (Tailwind)
+        run: npm run build:css
+
+      - name: Adicionar plataforma Android
+        run: npx cap add android
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload do APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaveiro-rapido-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
